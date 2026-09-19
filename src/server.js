@@ -26,6 +26,10 @@ app.use('/api/owner', ownerRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/quotation', quotationRoutes);
 
+app.get('/', (req, res) => {
+  res.json({ status: 'OK', message: 'Business Platform API is running' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
