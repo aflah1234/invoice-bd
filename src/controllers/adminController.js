@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Store = require('../models/Store');
 const Order = require('../models/Order');
 const generateToken = require('../utils/generateToken');
+const { uploadImageFiles, deleteStoredImage } = require('../utils/cloudinary');
 
 // @desc    Get dashboard stats
 // @route   GET /api/admin/stats
@@ -71,6 +72,8 @@ const createOwner = async (req, res) => {
       role: 'owner',
     });
 
+    const uploadedLogo = req.file ? (await uploadImageFiles([req.file], 'business-platform/logos'))[0] : null;
+
     // Create store and link to owner
     const store = await Store.create({
       name: storeName,
@@ -81,7 +84,7 @@ const createOwner = async (req, res) => {
       whatsapp: storeWhatsapp || whatsapp || phone,
       whatsappApiKey: storeWhatsappApiKey || '',
       category: storeCategory || 'General',
-      logo: req.file ? req.file.filename : null,
+      logo: uploadedLogo || (req.file ? req.file.filename : null),
     });
 
     // Link store back to owner

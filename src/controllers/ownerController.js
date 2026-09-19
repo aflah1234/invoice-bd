@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const generatePDF = require('../utils/generatePDF');
 const generateExcel = require('../utils/generateExcel');
+const { uploadImageFiles, deleteStoredImage } = require('../utils/cloudinary');
 const path = require('path');
 const fs = require('fs');
 
@@ -42,7 +43,11 @@ const updateStore = async (req, res) => {
     if (whatsapp !== undefined) store.whatsapp = whatsapp;
     if (whatsappApiKey !== undefined) store.whatsappApiKey = whatsappApiKey;
     if (category !== undefined) store.category = category;
-    if (req.file) store.logo = req.file.filename;
+    if (req.file) {
+      if (store.logo) await deleteStoredImage(store.logo);
+      const [uploadedLogo] = await uploadImageFiles([req.file], 'business-platform/logos');
+      store.logo = uploadedLogo || req.file.filename;
+    }
 
     await store.save();
     res.json({ success: true, message: 'Store updated', store });
@@ -78,7 +83,7 @@ const createItem = async (req, res) => {
 
     const { name, description, price, unit, category, stock, sku } = req.body;
 
-    const images = req.files ? req.files.map((f) => f.filename) : [];
+    const images = req.files ? await uploadImageFiles(req.files, 'business-platform/items') : [];
 
     const item = await Item.create({
       name,
@@ -120,7 +125,8 @@ const updateItem = async (req, res) => {
 
     // Add new images
     if (req.files && req.files.length > 0) {
-      item.images = [...item.images, ...req.files.map((f) => f.filename)];
+      const uploadedImages = await uploadImageFiles(req.files, 'business-platform/items');
+      item.images = [...item.images, ...uploadedImages];
     }
 
     await item.save();
@@ -138,11 +144,9 @@ const deleteItem = async (req, res) => {
     const item = await Item.findOneAndDelete({ _id: req.params.id, owner: req.user._id });
     if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
 
-    // Remove image files from disk
-    item.images.forEach((img) => {
-      const imgPath = path.join(__dirname, '../../uploads', img);
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    });
+    for (const img of item.images || []) {
+      await deleteStoredImage(img);
+    }
 
     res.json({ success: true, message: 'Item deleted' });
   } catch (err) {
@@ -162,8 +166,7 @@ const deleteItemImage = async (req, res) => {
     item.images = item.images.filter((img) => img !== filename);
     await item.save();
 
-    const imgPath = path.join(__dirname, '../../uploads', filename);
-    if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    await deleteStoredImage(filename);
 
     res.json({ success: true, message: 'Image removed', item });
   } catch (err) {

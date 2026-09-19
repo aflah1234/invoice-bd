@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const generatePDF = require('../utils/generatePDF');
 const generateExcel = require('../utils/generateExcel');
+const { normalizeCloudinaryUrl } = require('../utils/cloudinary');
 const path = require('path');
 
 // @desc    Get all active stores
@@ -54,11 +55,9 @@ const getStoreItems = async (req, res) => {
       .select('name description price unit images category stock sku')
       .sort({ name: 1 });
 
-    // Prepend server URL to image paths
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
     const itemsWithUrls = items.map((item) => {
       const obj = item.toJSON();
-      obj.imageUrls = obj.images.map((img) => `${baseUrl}/uploads/${img}`);
+      obj.imageUrls = (obj.images || []).map((img) => normalizeCloudinaryUrl(img));
       return obj;
     });
 

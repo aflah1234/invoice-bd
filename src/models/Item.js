@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { normalizeCloudinaryUrl } = require('../utils/cloudinary');
 
 const itemSchema = new mongoose.Schema(
   {
@@ -65,7 +66,7 @@ const itemSchema = new mongoose.Schema(
 // Virtual for primary image URL
 itemSchema.virtual('imageUrl').get(function () {
   if (this.images && this.images.length > 0) {
-    return `/uploads/${this.images[0]}`;
+    return normalizeCloudinaryUrl(this.images[0]);
   }
   return null;
 });
