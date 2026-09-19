@@ -67,9 +67,9 @@ const seedAdmin = async () => {
 
 const PORT = process.env.PORT || 5000;
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(async () => {
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ MongoDB connected');
     await seedAdmin();
     app.listen(PORT, () => {
@@ -80,10 +80,14 @@ mongoose
       console.log('   Admin   →  admin@platform.com / Admin@1234');
       console.log('─────────────────────────────────────────');
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error('❌ MongoDB error:', err.message);
     process.exit(1);
-  });
+  }
+};
+
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;
