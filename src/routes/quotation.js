@@ -50,8 +50,8 @@ router.post('/:orderId/resend', protect, async (req, res) => {
     res.json({
       success: true,
       message: `${type} regenerated${waSent ? ' and sent via WhatsApp' : ''}`,
-      pdfUrl: `/uploads/docs/${path.basename(pdfPath)}`,
-      excelUrl: type === 'quotation' ? `/uploads/docs/${path.basename(excelPath)}` : null,
+      pdfUrl:   `/api/quotation/${req.params.orderId}/file/pdf`,
+      excelUrl: type === 'quotation' ? `/api/quotation/${req.params.orderId}/file/excel` : null,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

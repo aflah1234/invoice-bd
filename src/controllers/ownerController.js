@@ -273,9 +273,9 @@ const createAndSendInvoice = async (req, res) => {
       success: true,
       message: 'Quotation updated and now visible on customer profile',
       order,
-      quotationPdfUrl:  `/uploads/docs/${path.basename(pdfPath)}`,
-      quotationExcelUrl: `/uploads/docs/${path.basename(excelPath)}`,
-      invoicePdfUrl:    `/uploads/docs/${path.basename(invoicePdfPath)}`,
+      quotationPdfUrl:   `/api/owner/orders/${order._id}/quotation/pdf`,
+      quotationExcelUrl: `/api/owner/orders/${order._id}/quotation/excel`,
+      invoicePdfUrl:     `/api/owner/orders/${order._id}/invoice/download`,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -292,7 +292,12 @@ const downloadInvoice = async (req, res) => {
     if (!order || !order.invoicePdfPath) {
       return res.status(404).json({ success: false, message: 'Invoice not found, generate it first' });
     }
-    res.download(order.invoicePdfPath, `invoice-${order.orderNumber}.pdf`);
+    if (!fs.existsSync(order.invoicePdfPath)) {
+      return res.status(404).json({ success: false, message: 'Invoice file not found on server' });
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${order.orderNumber}.pdf"`);
+    fs.createReadStream(order.invoicePdfPath).pipe(res);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

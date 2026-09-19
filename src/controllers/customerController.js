@@ -6,6 +6,7 @@ const generatePDF = require('../utils/generatePDF');
 const generateExcel = require('../utils/generateExcel');
 const { normalizeCloudinaryUrl } = require('../utils/cloudinary');
 const path = require('path');
+const fs = require('fs');
 
 // @desc    Get all active stores
 // @route   GET /api/customer/stores
@@ -145,12 +146,16 @@ const submitOrder = async (req, res) => {
 
     await order.save();
 
+    // Build download URLs — on Vercel files are in /tmp and served via API endpoint
+    const pdfBasename   = path.basename(pdfPath);
+    const excelBasename = path.basename(excelPath);
+
     res.status(201).json({
       success: true,
       message: 'Quotation generated successfully',
       order,
-      quotationPdfUrl: `/uploads/docs/${path.basename(pdfPath)}`,
-      quotationExcelUrl: `/uploads/docs/${path.basename(excelPath)}`,
+      quotationPdfUrl:   `/api/customer/orders/${order._id}/quotation/pdf`,
+      quotationExcelUrl: `/api/customer/orders/${order._id}/quotation/excel`,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -200,7 +205,13 @@ const downloadQuotationPDF = async (req, res) => {
     if (!order || !order.quotationPdfPath) {
       return res.status(404).json({ success: false, message: 'Quotation PDF not available' });
     }
-    res.download(order.quotationPdfPath, `quotation-${order.orderNumber}.pdf`);
+    const filePath = order.quotationPdfPath;
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'PDF file not found on server' });
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="quotation-${order.orderNumber}.pdf"`);
+    fs.createReadStream(filePath).pipe(res);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -215,7 +226,13 @@ const downloadQuotationExcel = async (req, res) => {
     if (!order || !order.quotationExcelPath) {
       return res.status(404).json({ success: false, message: 'Quotation Excel not available' });
     }
-    res.download(order.quotationExcelPath, `quotation-${order.orderNumber}.xlsx`);
+    const filePath = order.quotationExcelPath;
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'Excel file not found on server' });
+    }
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="quotation-${order.orderNumber}.xlsx"`);
+    fs.createReadStream(filePath).pipe(res);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

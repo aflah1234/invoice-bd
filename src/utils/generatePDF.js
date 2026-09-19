@@ -6,7 +6,10 @@ const generatePDF = (order, type = 'quotation') => {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 0, size: 'A4' });
     const filename = `${type}-${order.orderNumber}-${Date.now()}.pdf`;
-    const outputDir = path.join(__dirname, '../../uploads/docs');
+    // Vercel serverless: only /tmp is writable; fall back to local uploads/docs otherwise
+    const outputDir = process.env.VERCEL
+      ? '/tmp'
+      : path.join(__dirname, '../../uploads/docs');
 
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 

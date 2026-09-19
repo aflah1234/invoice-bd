@@ -13,7 +13,10 @@ const generateExcel = async (order, type = 'quotation') => {
   const sheet = workbook.addWorksheet(type === 'invoice' ? 'Invoice' : 'Quotation');
 
   const filename = `${type}-${order.orderNumber}-${Date.now()}.xlsx`;
-  const outputDir = path.join(__dirname, '../../uploads/docs');
+  // Vercel serverless: only /tmp is writable; fall back to local uploads/docs otherwise
+  const outputDir = process.env.VERCEL
+    ? '/tmp'
+    : path.join(__dirname, '../../uploads/docs');
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
