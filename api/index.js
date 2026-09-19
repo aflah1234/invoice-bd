@@ -10,13 +10,30 @@ const connectToDatabase = () => {
   return connectionPromise;
 };
 
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 module.exports = async (req, res) => {
   if (!req.url.startsWith('/api')) {
     req.url = '/api' + req.url;
   }
 
   if (req.method === 'OPTIONS') {
-    return app(req, res);
+    const origin = req.headers.origin;
+    const isAllowed = !origin
+      || allowedOrigins.includes(origin)
+      || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      || /^https:\/\/.*\.vercel\.app$/.test(origin);
+
+    if (isAllowed && origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(204).end();
   }
 
   try {
